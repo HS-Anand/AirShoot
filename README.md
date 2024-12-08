@@ -32,6 +32,6 @@ Turtle graphics library (usually comes pre-installed with Python)
 
 ## Game Controls:
 
-Left Arrow: Move the player plane left.
-Right Arrow: Move the player plane right.
-Spacebar: Fire a shot (up to 10 shots).
+- **Left Arrow**: Move the player plane left.
+- **Right Arrow**: Move the player plane right.
+- **Spacebar**: Fire a shot (up to 10 shots).
