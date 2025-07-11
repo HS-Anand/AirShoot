@@ -2,6 +2,7 @@ from turtle import Turtle, Screen
 import score
 import enemy
 import time
+import random
 
 ALIGNMENT = "center"
 FONT = ("Courier", 20, "normal")
@@ -19,21 +20,31 @@ player.color("blue")
 player.shape("arrow")
 player.setheading(0)
 player.penup()
-player.goto(5,-360)
+player.goto(5, -360)
 
 screen.listen()
 screen.tracer(0)
 
 shots = []
-shot_count = 0
-shot_left = 10
+shot_left = 10  # Total shots available initially
 
-def stop(player):
+def add_shot():
+    shot = Turtle()
+    shot.color("blue")
+    shot.shape("circle")
+    shot.shapesize(0.1)
+    shot.setheading(90)
+    shot.penup()
+    shot.goto(player.xcor(), player.ycor() + 2)
+    shots.append(shot)
+
+def stop():
     player.backward(1)
     player.forward(1)
 
-def move(player):
-    player.forward(10)
+def move():
+    player.forward(14)
+
 def right():
     player.setheading(0)
 
@@ -42,25 +53,11 @@ def left():
 
 def shoot():
     global shot_left
-    global shot_count
-    shot_count += 1
-    if shot_count < 11:
-        shot_left = shot_left - 1
+    if shot_left > 0:  # Prevent shooting if no ammo left
+        shot_left -= 1
         update_shot()
-        shot = Turtle()
-        shot.color("blue")
-        shot.shape("circle")
-        shot.shapesize(0.1)
-        shot.setheading(90)
-        shot.penup()
-        x = player.xcor()
-        y = player.ycor()
-        shot.goto(x, y + 2)
-        shots.append(shot)
-
-def shoot1():
-    shoot()
-
+        add_shot()
+        shots[-1].forward(5)  # Ensure newly fired shot moves immediately
 
 shotl = Turtle()
 shotl.hideturtle()
@@ -72,13 +69,23 @@ def update_shot():
     shotl.clear()
     shotl.write(f"Shots left: {shot_left}", align=ALIGNMENT, font=FONT)
 
+def move_shots():
+    """Moves all shots upwards and removes those that exit the screen."""
+    for shot in shots[:]:  # Use slicing to avoid modifying list during iteration
+        shot.forward(25)
+        if shot.ycor() > 400:  # Remove shots that leave the screen
+            shot.hideturtle()
+            shots.remove(shot)
+
+    screen.ontimer(move_shots, 50)  # Repeat every 50ms
 
 screen.onkey(right, "Right")
 screen.onkey(left, "Left")
-screen.onkey(shoot1, "space")
+screen.onkey(shoot, "Up")
+
+move_shots()  # Start moving shots at the beginning
 
 game = True
-flag = 0
 count = 0
 while count <= 15:
     count += 1
@@ -89,56 +96,43 @@ while count <= 15:
 count = 0
 while game:
     screen.update()
-    time.sleep(0.2)
+    time.sleep(0.1)
 
     update_shot()
 
     if not enemy.airplanes:
-        flag = 1
+        game = False  # End game if no enemies left
 
     if player.xcor() > 220 and player.heading() == 0:
-        stop(player)
-
-        # Prevent player from moving past the left boundary (-235)
+        stop()
     elif player.xcor() < -225 and player.heading() == 180:
-        stop(player)
+        stop()
     else:
-        move(player)
+        move()
 
-
-
-    for en in enemy.airplanes:
+    for en in enemy.airplanes[:]:  # Iterate safely over enemy list
         en.forward(7)
         if en.ycor() < -375:
-            flag = 1
+            game = False
         if en.distance(player) < 10:
-            flag = 1
+            game = False
 
-    for shot in shots:
-        shot.forward(25)
-        for en in enemy.airplanes:
-            if shot.distance(en) < 20:
+    for shot in shots[:]:  # Iterate safely over shots list
+        for en in enemy.airplanes[:]:
+            if shot.distance(en) < 20:  # Collision detected
                 score.increase_score()
                 shot.hideturtle()
                 en.hideturtle()
                 if shot in shots:
                     shots.remove(shot)
-                if en in enemy.airplanes:
-                    enemy.airplanes.remove(en)
-                count += 1
-                if count == 2:
+                enemy.airplanes.remove(en)
+                rd = random.randrange(0,3)
+                if rd > 1:
                     enemy.new_plane()
-                    count = 0
-                shot_count -= 1
-                shot_left += 1
+                shot_left += 1  # Rewarding a shot when hitting enemy
+                update_shot()
 
-
-
-    if flag == 1:
+    if not game:
         score.game_over()
-        game = False
-
-
-
 
 screen.exitonclick()
